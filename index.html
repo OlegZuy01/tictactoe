@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tic-Tac-Toe</title>
+
+    <style>
+        .app {
+            display: flex;
+            align-items: center;
+        }
+        .user {
+            font-size: 60px;
+            font-weight: bold;
+            width: calc((100% - 600px)/2);
+            text-align: center;
+            color: #8f8f8f;
+        }
+        .user.active {
+            color: #e32727;
+            text-shadow: 1px 1px 10px #e32727;
+        }
+        #tic-tac-container {
+            width: 603px;
+            height: 602px;
+            display: flex;
+            flex-wrap: wrap;
+            border: 1px solid #8f8f8f;
+            box-sizing: border-box;
+        }
+        #tic-tac-container > div:not(.filled){
+            cursor: pointer;
+        }
+        #tic-tac-container > div{
+            width: 200px;
+            height: 200px;
+            border: 1px solid #8f8f8f;
+            box-sizing: border-box;
+            text-align: center;
+            position: relative;
+        }
+        #tic-tac-container > div:after {
+            content: '';
+            position: absolute;
+            background-color: #e32727;
+        }
+        #tic-tac-container > div.win-vertical:after {
+            width: 4px;
+            height: 200px;
+            top: 0;
+            left: 98px;
+        }
+        #tic-tac-container > div.win-horizontal:after {
+            height: 4px;
+            width: 200px;
+            top: 98px;
+            left: 0;
+        }
+        #tic-tac-container > div.win-diagonal-left:after,
+        #tic-tac-container > div.win-diagonal-right:after {
+            width: 4px;
+            height: 283px;
+            top: -43px;
+            left: 97px;
+            transform: rotate(-45deg);
+        }
+        #tic-tac-container > div.win-diagonal-right:after {
+            transform: rotate(45deg);
+
+        }
+        #tic-tac-container > div:before {
+            font-size: 150px;
+            font-weight: bold;
+            font-family: fantasy;
+        }
+        #tic-tac-container > div[user="1"]:before {
+            content: 'o';
+            color: blue;
+        }
+        #tic-tac-container > div[user="2"]:before {
+            content: 'x';
+            color: red;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div class="app">
+        <div class="user" data-user="1">User 1</div>
+        <div id="tic-tac-container"></div>
+        <div class="user" data-user="2">User 2</div>
+
+    </div>
+
+
+    <script>
+        const winCombination = {
+            'vertical': [
+                ['a1', 'b1', 'c1'],
+                ['a2', 'b2', 'c2'],
+                ['a3', 'b3', 'c3'],
+            ],
+            'horizontal': [
+                ['a1', 'a2', 'a3'],
+                ['b1', 'b2', 'b3'],
+                ['c1', 'c2', 'c3'],
+            ],
+            'diagonal-left': [
+                ['a1', 'b2', 'c3'],
+            ],
+            'diagonal-right': [
+                ['a3', 'b2', 'c1'],
+            ],
+        }
+
+        let ticTacObj = {
+            'a1': false,
+            'a2': false,
+            'a3': false,
+            'b1': false,
+            'b2': false,
+            'b3': false,
+            'c1': false,
+            'c2': false,
+            'c3': false,
+        }
+        let activeUser = false;
+
+        let container = document.getElementById('tic-tac-container');
+
+        Object.entries(ticTacObj).forEach(([key, value]) => {
+            const el = document.createElement('div');
+            el.setAttribute('data', key)
+            el.addEventListener('click', function handleClick(event) {
+                moveHandler(event.target);
+            });
+            container.appendChild(el)
+        });
+        passTurnToUser(1)
+
+
+        function moveHandler(el){
+            if(el.classList.contains('filled')) {
+                return
+            }
+
+            let elData = el.getAttribute("data")
+            ticTacObj[elData] = activeUser;
+            el.setAttribute('user', activeUser)
+            el.classList.add('filled')
+            checkWinner()
+        }
+
+        function passTurnToUser(userKey){
+            activeUser = userKey;
+            document.querySelectorAll('.user').forEach((el) => {
+                el.classList.remove('active')
+            })
+            document.querySelector('.user[data-user="'+userKey+'"]').classList.add('active')
+        }
+
+        function getNextUser(){
+            return activeUser === 1 ? 2 : 1 ;
+        }
+
+        function checkWinner(){
+            let curUserFields = [];
+            Object.entries(ticTacObj).forEach(([key, value]) => {
+                if(value === activeUser) {
+                    curUserFields.push(key);
+                }
+            });
+            let win = false
+            let win_arr = false
+            let win_type = false
+            Object.entries(winCombination).forEach(([key, value]) => {
+                if(win){
+                    return;
+                }
+                value.forEach(arr => {
+                    if(win){
+                        return;
+                    }
+                    win = arr.every(v => curUserFields.includes(v));
+                    if(win){
+                        win_arr = arr
+                        win_type = key
+                        return;
+                    }
+                });
+            });
+            if(win){
+                setWinner(win_arr, win_type)
+            } else {
+                checkDraw();
+                let nextUser = getNextUser();
+                passTurnToUser(nextUser);
+            }
+        }
+
+        function checkDraw(){
+            if (Object.values(ticTacObj).indexOf(false) === -1) {
+                setTimeout(showConfirm.bind(null, "Draw, update the game ?"), 0)
+            }
+        }
+
+        function setWinner(arr, type){
+            arr.forEach(key => {
+                document.querySelector('#tic-tac-container div[data="'+key+'"]').classList.add('win-'+type);
+            });
+            setTimeout(showConfirm.bind(null, "User "+activeUser+" win! Refresh?"), 0)
+        }
+
+        function showConfirm(msg){
+            let refresh = confirm(msg);
+            if(refresh) {
+                refreshGame();
+            }
+        }
+
+        function refreshGame(){
+            Object.entries(ticTacObj).forEach(([key, value]) => {
+                ticTacObj[key] = false
+            });
+            document.querySelectorAll('#tic-tac-container div').forEach((el) => {
+                el.removeAttribute('user')
+                el.className = ''
+            })
+            passTurnToUser(1)
+        }
+
+    </script>
+</body>
+</html>
